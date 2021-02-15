@@ -16,11 +16,14 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"onydev/utils"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 // kubeconfigCmd represents the kubeconfig command
@@ -52,12 +55,45 @@ func init() {
 	// kubeconfigCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
+type onboardingResponse struct {
+	ApiserverURL string
+	Token        string
+	Namespace    string
+	User         string
+	ClusterName  string
+	Onboarded    string
+}
+
 func getKubeConfig() {
 	client := utils.GetAuthClient()
 	resp, err := client.Get("https://dev.insee.io/api/cluster")
-	f, _ := ioutil.ReadAll(resp.Body)
-	fmt.Printf("%s", f)
+
 	if err != nil {
 		panic(err)
 	}
+
+	onboardingResponse := new(onboardingResponse)
+	err = json.NewDecoder(resp.Body).Decode(onboardingResponse)
+
+	config := clientcmdapi.NewConfig()
+	config.Clusters[onboardingResponse.ClusterName] = &clientcmdapi.Cluster{
+		Server: onboardingResponse.ApiserverURL,
+	}
+	config.AuthInfos[onboardingResponse.ClusterName] = &clientcmdapi.AuthInfo{
+		Token: onboardingResponse.Token,
+	}
+	config.Contexts[onboardingResponse.ClusterName] = &clientcmdapi.Context{
+		Cluster:   onboardingResponse.ClusterName,
+		AuthInfo:  onboardingResponse.ClusterName,
+		Namespace: onboardingResponse.Namespace,
+	}
+	config.CurrentContext = onboardingResponse.ClusterName
+	pathOptions := clientcmd.NewDefaultPathOptions()
+	if err := clientcmd.ModifyConfig(pathOptions, *config, true); err != nil {
+		fmt.Println("Unexpected error:" + err.Error())
+	}
+	f, _ := clientcmd.Write(*config)
+	fmt.Printf("%s", f)
+	fmt.Println("")
+	fmt.Println(color.GreenString("kubeconfig set to follow context: "), onboardingResponse.ClusterName)
 }

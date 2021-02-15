@@ -3,10 +3,7 @@ module onydev
 go 1.15
 
 require (
-	cloud.google.com/go v0.76.0 // indirect
 	github.com/fatih/color v1.10.0
-	github.com/fsnotify/fsnotify v1.4.9 // indirect
-	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/google/go-cmp v0.5.4 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20210202160940-bed99a852dfe // indirect
 	github.com/kr/text v0.2.0 // indirect
@@ -14,10 +11,10 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/nmrshll/oauth2-noserver v0.0.0-20190221200101-9bf017bef639
-	github.com/nmrshll/rndm-go v0.0.0-20170430161430-8da3024e53de
-	github.com/palantir/stacktrace v0.0.0-20161112013806-78658fd2d177
+	github.com/nmrshll/rndm-go v0.0.0-20170430161430-8da3024e53de // indirect
+	github.com/palantir/stacktrace v0.0.0-20161112013806-78658fd2d177 // indirect
 	github.com/pelletier/go-toml v1.8.1 // indirect
-	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
+	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/smartystreets/assertions v1.2.0 // indirect
 	github.com/spf13/afero v1.5.1 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
@@ -33,4 +30,5 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	k8s.io/client-go v0.20.0
 )

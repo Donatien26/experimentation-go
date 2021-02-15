@@ -16,9 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-	"os"
-
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -52,6 +49,7 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+	rootCmd.Flags().BoolP("verbose", "v", true, "verbose")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -71,6 +69,5 @@ func initConfig() {
 	viper.AutomaticEnv() // read in environment variables that match
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	}
 }
