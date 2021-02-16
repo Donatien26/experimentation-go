@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/fatih/color v1.10.0
+	github.com/go-delve/delve v1.6.0 // indirect
 	github.com/google/go-cmp v0.5.4 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20210202160940-bed99a852dfe // indirect
 	github.com/kr/text v0.2.0 // indirect

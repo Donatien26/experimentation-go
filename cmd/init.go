@@ -16,85 +16,31 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-	"log"
-	"onydev/utils"
-	"os"
-	"path/filepath"
+	_init "onydev/cli/init"
 
-	oauth2ns "github.com/nmrshll/oauth2-noserver"
-
-	"github.com/fatih/color"
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Initialize config for onydev",
+	Long:  `Initialize config for onydev`,
 	Run: func(cmd *cobra.Command, args []string) {
 		clientID, _ := cmd.Flags().GetString("clientID")
-		authURL, _ := cmd.Flags().GetString("authURL")
-		tokenURL, _ := cmd.Flags().GetString("tokenURL")
-		execute(clientID, authURL, tokenURL)
+		realm, _ := cmd.Flags().GetString("realm")
+		keycloakURL, _ := cmd.Flags().GetString("keycloakURL")
+		updateFile, _ := cmd.Flags().GetBool("updateFile")
+		onboardingURL, _ := cmd.Flags().GetString("onboardingURL")
+		_init.Execute(clientID, realm, keycloakURL, onboardingURL, updateFile)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(initCmd)
-	initCmd.Flags().StringP("clientID", "", "onboarding", "clientID")
-	initCmd.Flags().StringP("authURL", "", "https://keycloak.dev.insee.io/auth/realms/dev/protocol/openid-connect/auth", "auth url")
-	initCmd.Flags().StringP("tokenURL", "", "https://keycloak.dev.insee.io/auth/realms/dev/protocol/openid-connect/token", "tokenURL")
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// initCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// initCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-}
-
-func execute(clientID string, authURL string, tokenURL string) {
-	create := createConfigFile()
-	if create {
-		viper.Set("auth.conf.clientID", clientID)
-		viper.Set("auth.conf.authURL", authURL)
-		viper.Set("auth.conf.tokenURL", tokenURL)
-		viper.WriteConfig()
-
-		conf := utils.GenerateOauthConfig()
-
-		client, err := oauth2ns.AuthenticateUser(conf)
-		if err != nil {
-			log.Fatal(err)
-		}
-		utils.SaveToken(client.Token)
-	}
-}
-
-func createConfigFile() bool {
-	home, _ := homedir.Dir()
-	path := filepath.Join(home, ".onydev")
-	filePath := filepath.Join(home, ".onydev", "config.yaml")
-
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		fmt.Println(color.GreenString("A config file will be created at " + filePath))
-		os.MkdirAll(path, os.ModePerm)
-		var file, _ = os.Create(filePath)
-		defer file.Close()
-		fmt.Println(color.GreenString("==> done creating file", filePath))
-		return true
-	}
-	fmt.Println(color.RedString("A file already exist at " + filePath))
-	return false
+	initCmd.Flags().StringP("keycloakURL", "k", "https://keycloak.dev.insee.io", "eg https://keycloak.example.com")
+	initCmd.Flags().StringP("realm", "r", "dev", "realm to use")
+	initCmd.Flags().StringP("clientID", "c", "onboarding", "clientID")
+	initCmd.Flags().StringP("onboardingURL", "", "https://dev.insee.io", "eg https://onboarding.example.com")
+	initCmd.Flags().BoolP("updateFile", "", false, "force the update")
 }

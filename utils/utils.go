@@ -3,20 +3,23 @@ package utils
 import (
 	"context"
 	"net/http"
+	"time"
+
+	oauth2ns "github.com/nmrshll/oauth2-noserver"
 
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 )
 
-// GenerateOauthConfig ... This func must be Exported, Capitalized, and comment added.
-func GenerateOauthConfig() *oauth2.Config {
+// GenerateOauthConfigFromParams ...
+func GenerateOauthConfigFromParams(clientID string, realm string, keycloakURL string) *oauth2.Config {
 	conf := &oauth2.Config{
-		ClientID:     viper.GetString("auth.conf.ClientID"),
+		ClientID:     clientID,
 		ClientSecret: "",
 		Scopes:       []string{"openid", "profile", "email"},
 		Endpoint: oauth2.Endpoint{
-			AuthURL:  viper.GetString("auth.conf.authURL"),
-			TokenURL: viper.GetString("auth.conf.tokenURL"),
+			AuthURL:  keycloakURL + "/auth/realms/" + realm + "/protocol/openid-connect/auth",
+			TokenURL: keycloakURL + "/auth/realms/" + realm + "/protocol/openid-connect/token",
 		}}
 	return conf
 }
@@ -26,16 +29,21 @@ func GetLastToken() *oauth2.Token {
 	token := new(oauth2.Token)
 	token.AccessToken = viper.GetString("auth.accessToken")
 	token.RefreshToken = viper.GetString("auth.refreshToken")
-	token.Expiry = viper.GetTime("auth.expiry")
+	token.Expiry = viper.GetTime("auth.expire")
 	token.TokenType = viper.GetString("tokenType")
 	return token
 }
 
 // GetAuthClient ...
 func GetAuthClient() *http.Client {
-	conf := GenerateOauthConfig()
+	conf := GenerateOauthConfigFromParams(viper.GetString("auth.conf.ClientID"), viper.GetString("auth.conf.realm"), viper.GetString("auth.conf.keycloakURL"))
 	ctx := context.Background()
 	token := GetLastToken()
+	if token.Expiry.Before(time.Now()) {
+		client, _ := oauth2ns.AuthenticateUser(conf)
+		SaveToken(client.Token)
+		token = client.Token
+	}
 	return conf.Client(ctx, token)
 }
 
@@ -46,4 +54,4 @@ func SaveToken(token *oauth2.Token) {
 	viper.Set("auth.refreshToken", token.RefreshToken)
 	viper.Set("auth.tokenType", token.TokenType)
 	viper.WriteConfig()
- }
+}
