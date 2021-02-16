@@ -3,11 +3,14 @@ package oauth2ns
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
+	url "net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/fatih/color"
@@ -28,7 +31,7 @@ const (
 	IP          = "127.0.0.1"
 	DEVICE_NAME = ""
 	// PORT is the port that the temporary oauth server will listen on
-	PORT = 8080
+	PORT = 14365
 	// seconds to wait before giving up on auth and exiting
 	authTimeout                = 120
 	oauthStateStringContextKey = 987
@@ -57,10 +60,11 @@ func AuthenticateUser(oauthConfig *oauth2.Config, options ...AuthenticateUserOpt
 	for _, processConfigFunc := range options {
 		processConfigFunc(&optionsConfig)
 	}
-
+	// proxy, _ := url.Parse("http://proxy-rie.insee.fr:8080")
 	// add transport for self-signed certificate to context
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		// Proxy:           http.ProxyURL(proxy),
 	}
 	sslcli := &http.Client{Transport: tr}
 	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, sslcli)
@@ -127,7 +131,6 @@ func startHTTPServer(ctx context.Context, conf *oauth2.Config) (clientChan chan 
 	clientChan = make(chan *AuthorizedClient)
 	stopHTTPServerChan = make(chan struct{})
 	cancelAuthentication = make(chan struct{})
-
 	http.HandleFunc("/oauth/callback", callbackHandler(ctx, conf, clientChan))
 	srv := &http.Server{Addr: ":" + strconv.Itoa(PORT)}
 
@@ -172,7 +175,8 @@ func callbackHandler(ctx context.Context, oauthConfig *oauth2.Config, clientChan
 		}
 
 		code := r.FormValue("code")
-		token, err := oauthConfig.Exchange(ctx, code)
+		fmt.Println(code)
+		token, err := exchangeCodeAgainstToken(oauthConfig, code)
 		if err != nil {
 			fmt.Printf("oauthoauthConfig.Exchange() failed with '%s'\n", err)
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
@@ -194,3 +198,46 @@ func callbackHandler(ctx context.Context, oauthConfig *oauth2.Config, clientChan
 		clientChan <- client
 	}
 }
+
+//curl --location --request POST 'http://localhost:8080/auth/realms/appsdeveloperblog/protocol/openid-connect/token' \
+// --header 'Content-Type: application/x-www-form-urlencoded' \
+// --data-urlencode 'grant_type=authorization_code' \
+// --data-urlencode 'client_id=photo-app-code-flow-client' \
+// --data-urlencode 'client_secret=3424193f-4728-4d19-8517-d450d7c6f2f5' \
+// --data-urlencode 'code=c081f6ca-ae87-40b6-8138-5afd4162d181.f109bb89-cd34-4374-b084-c3c1cf2c8a0b.1dc15d06-d8b9-4f0f-a042-727eaa6b98f7' \
+// --data-urlencode 'redirect_uri=http://localhost:8081/callback'
+func exchangeCodeAgainstToken(oauthConfig *oauth2.Config, code string) (*oauth2.Token, error) {
+	fmt.Println(code)
+	client := &http.Client{}
+	_url := oauthConfig.Endpoint.TokenURL
+	params := url.Values{}
+	params.Add("grant_type", "authorization_code")
+	params.Add("client_id", oauthConfig.ClientID)
+	params.Add("client_secret", oauthConfig.ClientSecret)
+	params.Add("code", code)
+	params.Add("redirect_uri", oauthConfig.RedirectURL)
+	req, err := http.NewRequest("POST", _url, strings.NewReader(params.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	res, err := client.Do(req)
+	bytes, err := ioutil.ReadAll(res.Body)
+	var tj tokenJSON
+	if err = json.Unmarshal(bytes, &tj); err != nil {
+		return nil, err
+	}
+	token := &oauth2.Token{
+		AccessToken:  tj.AccessToken,
+		TokenType:    tj.TokenType,
+		RefreshToken: tj.RefreshToken,
+		Expiry:       time.Now().Add(time.Duration(tj.ExpiresIn) * time.Second),
+	}
+	return token, err
+}
+
+type tokenJSON struct {
+	AccessToken  string         `json:"access_token"`
+	TokenType    string         `json:"token_type"`
+	RefreshToken string         `json:"refresh_token"`
+	ExpiresIn    expirationTime `json:"expires_in"` // at least PayPal returns string, while most return number
+}
+
+type expirationTime int32
