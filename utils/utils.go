@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	oauth2ns "github.com/nmrshll/oauth2-noserver"
+	oauth2ns "onydev/utils/oauth2"
 
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
