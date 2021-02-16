@@ -7,9 +7,10 @@ import (
 	"os"
 	"path/filepath"
 
+	oauth2ns "onydev/utils/oauth2"
+
 	"github.com/fatih/color"
 	"github.com/mitchellh/go-homedir"
-	oauth2ns "github.com/nmrshll/oauth2-noserver"
 	"github.com/spf13/viper"
 )
 

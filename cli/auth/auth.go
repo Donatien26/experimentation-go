@@ -5,7 +5,8 @@ import (
 	"log"
 	"onydev/utils"
 
-	oauth2ns "github.com/nmrshll/oauth2-noserver"
+	oauth2ns "onydev/utils/oauth2"
+
 	"golang.org/x/oauth2"
 )
 
